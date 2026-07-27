@@ -1,4 +1,4 @@
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { HashRouter, Navigate, Route, Routes } from "react-router-dom";
 import { useAuthContext } from "@/features/auth/hooks/auth-context";
 import { SignInPage } from "@/features/auth/pages/sign-in-page";
 import { SignUpPage } from "@/features/auth/pages/sign-up-page";
@@ -32,7 +32,7 @@ function WorkspaceGuard({ children }: { children: React.ReactNode }) {
 
 export function AppRouter() {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <Routes>
         <Route
           path="/sign-in"
@@ -101,6 +101,6 @@ export function AppRouter() {
         <Route path="/bot" element={<BotPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </BrowserRouter>
+    </HashRouter>
   );
 }
