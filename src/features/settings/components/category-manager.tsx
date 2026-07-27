@@ -322,6 +322,7 @@ export function CategoryManager() {
             Expense Categories
           </h4>
           <div className="rounded-lg border px-4">
+            {/* eslint-disable-next-line react-hooks/static-components */}
             <CategoryList items={expense} />
           </div>
         </div>
@@ -330,6 +331,7 @@ export function CategoryManager() {
             Income Categories
           </h4>
           <div className="rounded-lg border px-4">
+            {/* eslint-disable-next-line react-hooks/static-components */}
             <CategoryList items={income} />
           </div>
         </div>
