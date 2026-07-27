@@ -44,7 +44,10 @@ function validateFile(file: File, currentCount: number): string | null {
   return null;
 }
 
-export function useAttachments(workspaceId: string, transactionId: string | null): UseAttachmentsReturn {
+export function useAttachments(
+  workspaceId: string,
+  transactionId: string | null,
+): UseAttachmentsReturn {
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [stagedFiles, setStagedFiles] = useState<StagedFile[]>([]);
 
@@ -65,6 +68,7 @@ export function useAttachments(workspaceId: string, transactionId: string | null
   const addFiles = useCallback(
     async (files: FileList | File[]) => {
       let count = totalCount;
+      const validFiles: File[] = [];
       for (const file of Array.from(files)) {
         const error = validateFile(file, count);
         if (error) {
@@ -72,6 +76,7 @@ export function useAttachments(workspaceId: string, transactionId: string | null
           continue;
         }
         count++;
+        validFiles.push(file);
         if (transactionId) {
           await createAttachment({
             id: crypto.randomUUID(),
@@ -84,12 +89,23 @@ export function useAttachments(workspaceId: string, transactionId: string | null
             createdAt: new Date().toISOString(),
           });
         } else {
-          setStagedFiles((prev) => [...prev, { id: crypto.randomUUID(), file }]);
+          setStagedFiles((prev) => [
+            ...prev,
+            { id: crypto.randomUUID(), file },
+          ]);
         }
       }
       if (transactionId) await reload();
+      if (validFiles.length > 0) {
+        window.pendo?.track("receipt_attached", {
+          fileCount: validFiles.length,
+          fileTypes: [...new Set(validFiles.map((f) => f.type))].join(","),
+          totalSizeBytes: validFiles.reduce((sum, f) => sum + f.size, 0),
+          isNewTransaction: !transactionId,
+        });
+      }
     },
-    [workspaceId, transactionId, totalCount, reload]
+    [workspaceId, transactionId, totalCount, reload],
   );
 
   const removeAttachment = useCallback(
@@ -97,7 +113,7 @@ export function useAttachments(workspaceId: string, transactionId: string | null
       await deleteAttachment(id);
       await reload();
     },
-    [reload]
+    [reload],
   );
 
   const removeStagedFile = useCallback((id: string) => {
@@ -120,7 +136,7 @@ export function useAttachments(workspaceId: string, transactionId: string | null
       }
       setStagedFiles([]);
     },
-    [workspaceId, stagedFiles]
+    [workspaceId, stagedFiles],
   );
 
   const reset = useCallback(() => setStagedFiles([]), []);
