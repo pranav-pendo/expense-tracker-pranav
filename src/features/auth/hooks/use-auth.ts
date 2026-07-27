@@ -73,7 +73,7 @@ export function useAuth(): AuthState & AuthActions {
   }, []);
 
   useEffect(() => {
-    loadSession();
+    loadSession(); // eslint-disable-line react-hooks/set-state-in-effect
   }, [loadSession]);
 
   const signUp = useCallback(
