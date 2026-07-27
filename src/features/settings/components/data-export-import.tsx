@@ -3,10 +3,19 @@ import { Download, Upload, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { getTransactionsByWorkspaceId, createTransaction } from "@/lib/db/repositories/transactions.repo";
+import {
+  getTransactionsByWorkspaceId,
+  createTransaction,
+} from "@/lib/db/repositories/transactions.repo";
 import { getCategoriesByWorkspaceId } from "@/lib/db/repositories/categories.repo";
-import { getGoalsByWorkspaceId, createGoal } from "@/lib/db/repositories/goals.repo";
-import { getBudgetsByWorkspaceId, upsertBudget } from "@/lib/db/repositories/budgets.repo";
+import {
+  getGoalsByWorkspaceId,
+  createGoal,
+} from "@/lib/db/repositories/goals.repo";
+import {
+  getBudgetsByWorkspaceId,
+  upsertBudget,
+} from "@/lib/db/repositories/budgets.repo";
 import { useAuthContext } from "@/features/auth/hooks/auth-context";
 import type { Budget, Goal, Transaction } from "@/types";
 
@@ -27,9 +36,22 @@ export function DataExportImport() {
         getBudgetsByWorkspaceId(workspace.id),
       ]);
       // Receipt attachments (binary blobs) are intentionally not included.
-      const data = { workspace, transactions, categories, goals, budgets, exportedAt: new Date().toISOString() };
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-      downloadBlob(blob, `expense-tracker-export-${new Date().toISOString().slice(0, 10)}.json`);
+      const data = {
+        workspace,
+        transactions,
+        categories,
+        goals,
+        budgets,
+        exportedAt: new Date().toISOString(),
+      };
+      const blob = new Blob([JSON.stringify(data, null, 2)], {
+        type: "application/json",
+      });
+      downloadBlob(
+        blob,
+        `expense-tracker-export-${new Date().toISOString().slice(0, 10)}.json`,
+      );
+      window.pendo?.track("data_exported", { format: "json" });
       toast.success("Exported successfully");
     } catch {
       toast.error("Export failed");
@@ -47,7 +69,16 @@ export function DataExportImport() {
         getCategoriesByWorkspaceId(workspace.id),
       ]);
       const catMap = new Map(categories.map((c) => [c.id, c.name]));
-      const header = ["ID", "Type", "Amount", "Category", "Description", "Date", "Recurring", "Notes"];
+      const header = [
+        "ID",
+        "Type",
+        "Amount",
+        "Category",
+        "Description",
+        "Date",
+        "Recurring",
+        "Notes",
+      ];
       const rows = transactions.map((t) => [
         t.id,
         t.type,
@@ -58,9 +89,15 @@ export function DataExportImport() {
         t.isRecurring ? "Yes" : "No",
         `"${t.notes.replace(/"/g, '""')}"`,
       ]);
-      const csv = [header.join(","), ...rows.map((r) => r.join(","))].join("\n");
+      const csv = [header.join(","), ...rows.map((r) => r.join(","))].join(
+        "\n",
+      );
       const blob = new Blob([csv], { type: "text/csv" });
-      downloadBlob(blob, `transactions-${new Date().toISOString().slice(0, 10)}.csv`);
+      downloadBlob(
+        blob,
+        `transactions-${new Date().toISOString().slice(0, 10)}.csv`,
+      );
+      window.pendo?.track("data_exported", { format: "csv" });
       toast.success("CSV exported successfully");
     } catch {
       toast.error("CSV export failed");
@@ -82,7 +119,8 @@ export function DataExportImport() {
         budgets?: Budget[];
       };
 
-      if (!Array.isArray(data.transactions)) throw new Error("Invalid format: missing transactions array");
+      if (!Array.isArray(data.transactions))
+        throw new Error("Invalid format: missing transactions array");
 
       let imported = 0;
       for (const tx of data.transactions) {
@@ -105,25 +143,44 @@ export function DataExportImport() {
             ...goal,
             id: crypto.randomUUID(),
             workspaceId: workspace.id,
-            contributions: (goal.contributions ?? []).map((c) => ({ ...c, id: crypto.randomUUID() })),
+            contributions: (goal.contributions ?? []).map((c) => ({
+              ...c,
+              id: crypto.randomUUID(),
+            })),
           });
           extras++;
         }
       }
       if (Array.isArray(data.budgets)) {
         for (const budget of data.budgets) {
-          await upsertBudget({ ...budget, id: crypto.randomUUID(), workspaceId: workspace.id });
+          await upsertBudget({
+            ...budget,
+            id: crypto.randomUUID(),
+            workspaceId: workspace.id,
+          });
           extras++;
         }
       }
 
+      window.pendo?.track("data_imported", {
+        transactionCount: imported,
+        goalCount: Array.isArray(data.goals) ? data.goals.length : 0,
+        budgetCount: Array.isArray(data.budgets) ? data.budgets.length : 0,
+      });
+
       toast.success(
         `Imported ${imported} transaction${imported !== 1 ? "s" : ""}${
-          extras > 0 ? ` and ${extras} goal${extras !== 1 ? "s" : ""}/budget${extras !== 1 ? "s" : ""}` : ""
-        }`
+          extras > 0
+            ? ` and ${extras} goal${extras !== 1 ? "s" : ""}/budget${extras !== 1 ? "s" : ""}`
+            : ""
+        }`,
       );
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Import failed — check the file format");
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : "Import failed — check the file format",
+      );
     } finally {
       setIsImporting(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -143,7 +200,8 @@ export function DataExportImport() {
     <div className="flex flex-col gap-4">
       <Alert>
         <AlertDescription>
-          Your data is stored locally in your browser. Export regularly to keep a backup.
+          Your data is stored locally in your browser. Export regularly to keep
+          a backup.
         </AlertDescription>
       </Alert>
 
@@ -151,11 +209,15 @@ export function DataExportImport() {
         <div>
           <h4 className="text-sm font-medium mb-1">Export</h4>
           <p className="text-sm text-muted-foreground mb-3">
-            Download your transactions, categories, goals, and budgets. Receipt attachments are not
-            included in backups.
+            Download your transactions, categories, goals, and budgets. Receipt
+            attachments are not included in backups.
           </p>
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={handleExportJSON} disabled={isExporting}>
+            <Button
+              variant="outline"
+              onClick={handleExportJSON}
+              disabled={isExporting}
+            >
               {isExporting ? (
                 <Loader2 data-icon="inline-start" className="animate-spin" />
               ) : (
@@ -163,7 +225,11 @@ export function DataExportImport() {
               )}
               Export JSON
             </Button>
-            <Button variant="outline" onClick={handleExportCSV} disabled={isExporting}>
+            <Button
+              variant="outline"
+              onClick={handleExportCSV}
+              disabled={isExporting}
+            >
               {isExporting ? (
                 <Loader2 data-icon="inline-start" className="animate-spin" />
               ) : (
@@ -177,7 +243,8 @@ export function DataExportImport() {
         <div>
           <h4 className="text-sm font-medium mb-1">Import</h4>
           <p className="text-sm text-muted-foreground mb-3">
-            Import transactions from a JSON file previously exported from this app.
+            Import transactions from a JSON file previously exported from this
+            app.
           </p>
           <input
             ref={fileInputRef}
