@@ -60,6 +60,11 @@ export function GoalsPage() {
         deadline: values.deadline || undefined,
         color: values.color,
       });
+      window.pendo?.track("goal_updated", {
+        targetAmount: values.targetAmount,
+        hasDeadline: Boolean(values.deadline),
+        goalName: values.name,
+      });
       setEditingGoal(null);
       toast.success("Goal updated");
     } catch {
@@ -80,6 +85,22 @@ export function GoalsPage() {
         goalTargetAmount: contributingGoal.targetAmount,
         goalName: contributingGoal.name,
       });
+      const previousTotal = contributingGoal.contributions.reduce(
+        (sum, c) => sum + c.amount,
+        0,
+      );
+      const newTotal = previousTotal + values.amount;
+      if (
+        previousTotal < contributingGoal.targetAmount &&
+        newTotal >= contributingGoal.targetAmount
+      ) {
+        window.pendo?.track("goal_completed", {
+          goalName: contributingGoal.name,
+          targetAmount: contributingGoal.targetAmount,
+          totalContributions: newTotal,
+          contributionCount: contributingGoal.contributions.length + 1,
+        });
+      }
       setContributingGoal(null);
       toast.success("Contribution added");
     } catch {

@@ -221,6 +221,10 @@ export function CategoryManager() {
     try {
       await updateCategory({ ...editingCat, ...values });
       await reload();
+      window.pendo?.track("category_updated", {
+        scope: values.scope,
+        categoryName: values.name,
+      });
       setEditingCat(null);
       toast.success("Category updated");
     } catch {
