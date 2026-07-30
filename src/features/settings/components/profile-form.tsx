@@ -44,7 +44,9 @@ export function ProfileForm() {
         avatarInitials: initials,
       });
       await refreshUser();
-      window.pendo?.track("profile_updated");
+      window.pendo?.track("profile_updated", {
+        displayNameChanged: values.displayName !== user.displayName,
+      });
       toast.success("Profile updated");
     } catch {
       toast.error("Failed to update profile");

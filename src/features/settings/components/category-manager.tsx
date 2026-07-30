@@ -223,7 +223,7 @@ export function CategoryManager() {
       await reload();
       window.pendo?.track("category_updated", {
         scope: values.scope,
-        categoryName: values.name,
+        isDefault: editingCat.isDefault,
       });
       setEditingCat(null);
       toast.success("Category updated");
